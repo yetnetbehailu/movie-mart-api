@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
 using movie_mart_api;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,7 +14,16 @@ builder.Services.AddSwaggerGen();
 // Add database context to dependency injection container
 // Configure the database provider to use SQL Server
 builder.Services.AddDbContext<MovieMartContext>(options =>
-options.UseSqlServer(builder.Configuration.GetConnectionString("MovieMartContext") ?? throw new InvalidOperationException("Connection string 'ApplicationContext' not found.")));
+options.UseSqlServer(builder.Configuration.GetConnectionString("MovieMartContext") ?? throw new InvalidOperationException("Connection string 'MovieMartContext' not found.")));
+
+
+// Configure JSON serializer options to preserve references
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
+
 
 var app = builder.Build();
 
@@ -25,6 +35,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(policy => policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin());
 
 app.UseAuthorization();
 
