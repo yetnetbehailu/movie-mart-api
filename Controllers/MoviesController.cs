@@ -294,5 +294,44 @@ namespace movie_mart_api.Controllers
             // Save changes to remove unassociated actors from database
             await _movieMartContext.SaveChangesAsync();
         }
+
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteMovie(int id)
+        {
+            try
+            {
+                var existingMovie = await _movieMartContext.Movies
+                    .Include(m => m.Genre)
+                    .Include(m => m.Director)
+                    .Include(m => m.Actors)
+                    .FirstOrDefaultAsync(m => m.MovieId == id);
+
+                if (existingMovie == null)
+                {
+                    // 404 Not Found
+                    return NotFound("Movie not found");
+                }
+
+                // Remove movie from database
+                _movieMartContext.Movies.Remove(existingMovie);
+                // Save changes to solidify the remove from database
+                await _movieMartContext.SaveChangesAsync();
+
+
+                // After saving changes
+                // Remove directors not associated with any movie
+                await RemoveUnassociatedDirectors();
+                // Remove actors not associated with any movie
+                await RemoveUnassociatedActors();
+
+                return Ok("Movie deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while deleting the movie");
+                return StatusCode(500, "An error occurred while processing the request");
+            }
+        }
     }
 }
