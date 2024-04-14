@@ -36,6 +36,35 @@ namespace movie_mart_api.Controllers
             return Ok(movies);
         }
 
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetMovieDetails(int id)
+        {
+            try
+            {
+                // Find the movie with the given ID
+                var movie = await _movieMartContext.Movies
+                    .Include(m => m.Genre)
+                    .Include(m => m.Director)
+                    .Include(m => m.Actors)
+                    .FirstOrDefaultAsync(m => m.MovieId == id);
+
+                if (movie == null)
+                {
+                    // 404 Not Found
+                    return NotFound("Movie not found");
+                }
+
+                return Ok(movie); // Return the movie details
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while fetching the movie details");
+                return StatusCode(500, "An error occurred while processing the request");
+            }
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> CreateMovie([FromBody] Movie movieRequest)
         {
