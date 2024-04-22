@@ -1,22 +1,21 @@
 ﻿using System;
 using System.Reflection.Emit;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using movie_mart_api.Models;
 
 
 namespace movie_mart_api
 {
-	public class MovieMartContext: DbContext
-	{
+	public class MovieMartContext: IdentityDbContext<User, Role, int>
+    {
         public DbSet<Movie> Movies { get; set; }
 
         public DbSet<Director> Directors { get; set; }
         public DbSet<Genre> Genres { get; set; }
 
         public DbSet<Actor> Actors { get; set; }
-
-        public DbSet<User> Users { get; set; }
-        public DbSet<Role> Roles { get; set; }
 
         //Constructor
         public MovieMartContext (DbContextOptions options) : base(options){
@@ -88,30 +87,6 @@ namespace movie_mart_api
                 }
             );
 
-
-            builder.Entity<Role>().HasData(
-                new Role { RoleId = 1, RoleName = "Admin" }
-            );
-
-
-            builder.Entity<User>().HasData(
-                new User
-                {
-                    UserId = 1,
-                    UserName = "admin",
-                    Email = "admin@example.com",
-                    Password = "hashedPassword",
-                    Token = "TempToken1"
-                },
-                new User
-                {
-                    UserId = 2,
-                    UserName = "user2",
-                    Email = "user2@example.com",
-                    Password = "hashedPassword2",
-                    Token = "TempToken2"
-                }
-            );
         }
     }
 }
