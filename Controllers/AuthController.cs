@@ -123,6 +123,88 @@ namespace movie_mart_api.Controllers
 
         }
 
+
+        [HttpGet("user-roles")]
+        public async Task<IActionResult> GetUserRoles()
+        {
+            try
+            {
+                // Get JWT token from request headers (Splits header value by space & retrieves the last part typically the token itself)
+                var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+
+                // Log the retrieved token
+                _logger.LogInformation($"JWT Token: {token}");
+
+                if (string.IsNullOrEmpty(token))
+                {
+                    _logger.LogWarning("JWT token not found in request headers");
+                    return Unauthorized("JWT token not found");
+                }
+
+                // Validate and parse JWT token (configure the parameters for validating the JWT token)
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var validationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = _configuration["Jwt:Issuer"],
+                    ValidAudience = _configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]))
+                };
+
+                ClaimsPrincipal principal;
+                try
+                {
+                    // "out _" parameter discards additional information returned by the ValidateToken method & retains the principal containing the validated claims
+                    principal = tokenHandler.ValidateToken(token, validationParameters, out _);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error validating JWT token: {ex}");
+                    return Unauthorized("Invalid JWT token");
+                }
+
+                // Log validation success
+                _logger.LogInformation($"Token validation successful");
+
+                // Get user identifier from claims
+                var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // Log retrieved user ID
+                _logger.LogInformation($"User ID from token: {userId}");
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("User identifier not found in claims");
+                    return NotFound("User not found");
+                }
+
+                // Retrieve user roles
+                var user = await _userManager.FindByIdAsync(userId);
+                // Log retrieved user
+                _logger.LogInformation($"Retrieved user: {user?.UserName}");
+
+                if (user == null)
+                {
+                    _logger.LogWarning("User not found");
+                    return NotFound("User not found");
+                }
+
+                var roles = await _userManager.GetRolesAsync(user);
+
+                // Log user roles
+                _logger.LogInformation($"User roles: {string.Join(", ", roles)}");
+
+                // Returns user roles as OK response with the roles retrieved from the database
+                return Ok(new { roles });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving user roles: {ex}");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
     }
 
 }
